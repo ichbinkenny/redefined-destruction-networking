@@ -12,6 +12,7 @@ message_size = 64
 next_id = 1
 
 ACK = 0x0E
+NACK = ACK ^ 0xFF
 
 game_in_progress = False
 
@@ -33,12 +34,15 @@ def sendIDToClient(client : socket, addr : int):
         next_id += 1
     else:
         client.sendall(bytes([cli_id]))
+    client.sendall(bytes([ACK]))
     idLock.release()
 
 def getClientComponents(client, addr):
     message = client.recv(message_size)
     print("Client components %s" % str(message))
-    return ["Test1", "Test2"]
+    if len(message.strip()) == 0:
+        client.sendall(bytes(NACK))
+    return message.split(' ')
 
 def checkClientReadyState(client, addr):
     status = client.recv(message_size)
@@ -46,6 +50,8 @@ def checkClientReadyState(client, addr):
 
 def handleClientInfo(client : socket, addr : int):
     print("I am a thread handling client with address %s" % str(addr))
+    # We need to let the client know we established a connection.
+    client.sendall(bytes(ACK))
     sendIDToClient(client, addr)
     components = getClientComponents(client, addr)
     global game_in_progress
