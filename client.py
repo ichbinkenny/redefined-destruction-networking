@@ -10,11 +10,12 @@ end_flag = True
 ACK = 0x0E
 NACK = ACK ^ 0xFF
 game_in_progress = False
-message_size = 64
+message_size = 1024
 READY = 1
 BUSY = 2
 DEV_ADDED = 3
 DEV_REMOVED = 4
+GAME_START = 54
 
 
 def setupClient():
@@ -32,22 +33,27 @@ def setupClient():
     else:
         print("UNKNOWN STATUS: {}".format(status))
 
-def readDevUpdates():
-    info = sys.stdin.readline()
-    print(info + " received!")
-    status = int(info[:info.index(':')])
-    if status == DEV_ADDED:
-        print("Device was added! Send the info next!")
-    elif status == DEV_REMOVED:
-        print("Device was removed!")
+def sendDevUpdates():
+    while True:
+        info = sys.stdin.readline().strip()
+        print(info + " received!")
+        status = int(info[:info.index(':')])
+        if status == DEV_ADDED:
+            client_socket.sendall(b"hello, world!")
+        elif status == DEV_REMOVED:
+            print("Device was removed!")
+
+def receiveServerUpdates():
+    while True:
+        update = client_socket.recv(message_size)
+        print("Update")
 
 def beginConnLoop():
     end_flag = False
-    bot_updated_thread = threading.Thread(target=readDevUpdates)
+    bot_updated_thread = threading.Thread(target=sendDevUpdates)
     bot_updated_thread.start()
-    while True:
-        if end_flag:
-            break
+    server_updated_thread = threading.Thread(target=receiveServerUpdates)
+    server_updated_thread.start()
 
 if __name__ == "__main__":
     setupClient()
