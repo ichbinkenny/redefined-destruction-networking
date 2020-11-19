@@ -3,19 +3,18 @@ import threading
 import sys
 
 client_socket = None
-address = "192.168.72.1" # This will be the server's address on the local network. It is imperative that the client is already on the hostapd network! 
-default_port = 12873
+address = "asimplenerd.com"#"192.168.72.1" # This will be the server's address on the local network. It is imperative that the client is already on the hostapd network! 
+default_port = 1287
 id = -1
 end_flag = True
-ACK = 0x0E
-NACK = ACK ^ 0xFF
+ACK = 'e'
+NACK = 'f'
 game_in_progress = False
-message_size = 1024
+message_size = 256
 READY = 1
 BUSY = 2
 DEV_ADDED = 3
 DEV_REMOVED = 4
-GAME_START = 54
 
 
 def setupClient():
@@ -24,36 +23,39 @@ def setupClient():
     print("Attempting to connect to server...")
     client_socket.connect((address, default_port))
     id = int.from_bytes(client_socket.recv(message_size), byteorder='big')
-    status = int.from_bytes(client_socket.recv(message_size), byteorder='big')
+    status = client_socket.recv(message_size).decode('utf-8')
     if status == ACK:
         print("Got ID %d" % id)
         beginConnLoop()
     elif status == NACK:
         print("Failed to get id!")
     else:
-        print("UNKNOWN STATUS: {}".format(status))
+        print("UNKNOWN STATUS: {}".format(str(status)))
 
-def sendDevUpdates():
-    while True:
-        info = sys.stdin.readline().strip()
-        print(info + " received!")
-        status = int(info[:info.index(':')])
-        if status == DEV_ADDED:
-            client_socket.sendall(b"hello, world!")
-        elif status == DEV_REMOVED:
-            print("Device was removed!")
-
-def receiveServerUpdates():
-    while True:
-        update = client_socket.recv(message_size)
-        print("Update")
+def readDevUpdates():
+    info = sys.stdin.readline()
+    # print(info + " received!")
+    # status = int(info[:info.index(':')])
+    # if status == DEV_ADDED:
+    #     print("Device was added! Send the info next!")
+    # elif status == DEV_REMOVED:
+    #     print("Device was removed!")
 
 def beginConnLoop():
     end_flag = False
-    bot_updated_thread = threading.Thread(target=sendDevUpdates)
+    bot_updated_thread = threading.Thread(target=readDevUpdates)
     bot_updated_thread.start()
-    server_updated_thread = threading.Thread(target=receiveServerUpdates)
-    server_updated_thread.start()
+    components = "0:0:0:Sword" # No armor and sword weapon
+    client_socket.sendall(bytes(components, 'utf-8'))
+    client_socket.sendall(bytes("I am ready to rumble.", 'utf-8'))
+    while True:
+        msg = client_socket.recv(message_size).decode('utf-8')
+        print('Msg: %s' % msg)
+        ## the next 2 lines are for testing
+        msg = input()
+        client_socket.sendall(bytes(msg, 'utf-8'))
+        if end_flag:
+            break
 
 if __name__ == "__main__":
     setupClient()

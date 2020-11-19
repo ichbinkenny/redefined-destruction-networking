@@ -3,16 +3,16 @@ import threading
 
 server_socket = None
 address = "0.0.0.0"
-port = 12873
+port = 1287
 
 clients = dict() # format for client is addr, id
-
-message_size = 64
+client_sockets = dict() #socket, id
+message_size = 256
 
 next_id = 1
 
-ACK = 0x0E
-NACK = ACK ^ 0xFF
+ACK = 'e'
+NACK = 'f'
 
 game_in_progress = False
 
@@ -34,30 +34,40 @@ def sendIDToClient(client : socket, addr : int):
         next_id += 1
     else:
         client.sendall(bytes([cli_id]))
-    client.sendall(bytes([ACK]))
+    client.sendall(bytes(ACK, 'utf-8'))
     idLock.release()
 
 def getClientComponents(client, addr):
     message = client.recv(message_size)
     print("Client components %s" % str(message))
     if len(message.strip()) == 0:
-        client.sendall(bytes(NACK))
-    return message.split(' ')
+        client.sendall(bytes(NACK, 'utf-8'))
+
+def broadcast_message(msg):
+    for k, v in client_sockets.items():
+        v.sendall(bytes(msg, 'utf-8'))
 
 def checkClientReadyState(client, addr):
-    status = client.recv(message_size)
-    return str(status).lower() == "ready"
+    status = str(client.recv(message_size))
+    if status.lower() == "ready":
+        return True
+    else:
+        print("Msg: {}".format(status))
+        broadcast_message(status)
+    return False
 
 def handleClientInfo(client : socket, addr : int):
     print("I am a thread handling client with address %s" % str(addr))
     # We need to let the client know we established a connection.
-    client.sendall(bytes(ACK))
     sendIDToClient(client, addr)
+    global client_sockets
+    client_sockets[clients[addr[0]]] = client
+    #client.sendall(bytes(ACK, 'utf-8'))
     components = getClientComponents(client, addr)
     global game_in_progress
     while not game_in_progress:
         checkClientReadyState(client, addr)
-    
+
 
 
 if __name__ == "__main__":
@@ -70,6 +80,6 @@ if __name__ == "__main__":
         if not game_in_progress:
             print("Waiting for client")
             client, addr = server_socket.accept()
-            print("Found client!")
-            threading.Thread(target=handleClientInfo, args=(client, addr)).start()
-
+            if addr not in clients:
+                print("Found client!")
+                threading.Thread(target=handleClientInfo, args=(client, addr)).start()
