@@ -1,6 +1,7 @@
 import socket
 import threading
 import sys
+import select
 
 client_socket = None
 address = "asimplenerd.com"#"192.168.72.1" # This will be the server's address on the local network. It is imperative that the client is already on the hostapd network! 
@@ -33,13 +34,18 @@ def setupClient():
         print("UNKNOWN STATUS: {}".format(str(status)))
 
 def readDevUpdates():
-    info = sys.stdin.readline()
-    # print(info + " received!")
-    # status = int(info[:info.index(':')])
-    # if status == DEV_ADDED:
-    #     print("Device was added! Send the info next!")
-    # elif status == DEV_REMOVED:
-    #     print("Device was removed!")
+    while not end_flag:
+        info = sys.stdin.readline()
+        print(info + " received!")
+        status = "NONE"
+        if ':' in info:
+            status = int(info[:info.index(':')])
+        if status == DEV_ADDED:
+            print("Device was added! Send the info next!")
+        elif status == DEV_REMOVED:
+            print("Device was removed!")
+        else:
+            client_socket.sendall(bytes(info, 'utf-8'))
 
 def beginConnLoop():
     end_flag = False
@@ -49,11 +55,10 @@ def beginConnLoop():
     client_socket.sendall(bytes(components, 'utf-8'))
     client_socket.sendall(bytes("I am ready to rumble.", 'utf-8'))
     while True:
-        msg = client_socket.recv(message_size).decode('utf-8')
-        print('Msg: %s' % msg)
-        ## the next 2 lines are for testing
-        msg = input()
-        client_socket.sendall(bytes(msg, 'utf-8'))
+        read_list, write_list, err = select.select([client_socket], [], [])
+        for sock in read_list:
+            msg = sock.recv(message_size).decode('utf-8')
+            print('Msg: %s' % msg) # TODO handle message and send back info over bluetooth
         if end_flag:
             break
 
