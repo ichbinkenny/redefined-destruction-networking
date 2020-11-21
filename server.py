@@ -5,12 +5,13 @@ import sys
 server_socket = None
 address = "0.0.0.0"
 port = 1287
+close_message = "PLZCLOSENOW"
 
 DEV_ADDED = 3
 DEV_REMOVED = 4
 
 clients = dict() # format for client is addr, id
-client_sockets = dict() #socket, id
+client_sockets = dict() #addr, client
 client_threads = []
 message_size = 256
 client_lock = threading.Lock()
@@ -31,19 +32,26 @@ def setupServer():
 
 def teardownServer():
     global client_sockets
+    for addr, client in client_sockets.items():
+        client.sendall(close_message.encode('utf-8'))
+        client.close()
     del client_sockets
     global server_socket
     server_socket.close()
 
-def sendIDToClient(client : socket, addr : int):
+def sendIDToClient(client : socket, addr):
     idLock.acquire()
     global clients
     cli_id = clients.get(addr[0], None)
-    print("New client detected. Adding to log.")
-    global next_id
-    client.sendall(bytes([next_id]))
-    clients[addr[0]] = next_id
-    next_id = next_id + 1
+    if cli_id is not None:
+        print("Client %d reconnected!" % cli_id)
+        client.sendall(bytes([cli_id]))
+    else:
+        print("New client detected. Adding to log.")
+        global next_id
+        client.sendall(bytes([next_id]))
+        clients[addr[0]] = next_id
+        next_id = next_id + 1
     client.sendall(bytes(ACK, 'utf-8'))
     idLock.release()
 
