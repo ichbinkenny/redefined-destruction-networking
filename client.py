@@ -35,19 +35,23 @@ def setupClient():
 
 def readDevUpdates():
     while not end_flag:
-        info = sys.stdin.readline()
+        print("Reading line...")
+        info = sys.stdin.readline().strip()
         print(info + " received!")
         status = "NONE"
         if ':' in info:
             status = int(info[:info.index(':')])
         if status == DEV_ADDED:
             print("Device was added! Send the info next!")
+            client_socket.sendall(bytes(info, 'utf-8'))
         elif status == DEV_REMOVED:
             print("Device was removed!")
+            client_socket.sendall(bytes(info, 'utf-8'))
         else:
             client_socket.sendall(bytes(info, 'utf-8'))
 
 def beginConnLoop():
+    global end_flag
     end_flag = False
     bot_updated_thread = threading.Thread(target=readDevUpdates)
     bot_updated_thread.start()
@@ -58,7 +62,8 @@ def beginConnLoop():
         read_list, write_list, err = select.select([client_socket], [], [])
         for sock in read_list:
             msg = sock.recv(message_size).decode('utf-8')
-            print('Msg: %s' % msg) # TODO handle message and send back info over bluetooth
+            sys.stdout.write(msg) # TODO handle message and send back info over bluetooth
+            sys.stdout.flush()
         if end_flag:
             break
 
