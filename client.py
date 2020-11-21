@@ -62,7 +62,8 @@ def beginConnLoop():
         read_list, write_list, err = select.select([client_socket], [], [])
         for sock in read_list:
             msg = sock.recv(message_size).decode('utf-8')
-            print('Msg: %s' % msg) # TODO handle message and send back info over bluetooth
+            sys.stdout.write(msg) # TODO handle message and send back info over bluetooth
+            sys.stdout.flush()
         if end_flag:
             break
 
