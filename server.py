@@ -83,13 +83,13 @@ def checkClientReadyState(client, addr):
         code = int(status[:status.index(':')])
     if code == DEV_ADDED:
         print("New device added for client with ID: %d" % clientID)
-        broadcast_message(status + " " + str(clientID))
+        broadcast_message(status + " " + str(clientID) + "\n")
     elif code == DEV_REMOVED:
         print("Device removed from client with ID: %d" % clientID)
-        broadcast_message(status + " " + str(clientID))
+        broadcast_message(status + " " + str(clientID) + "\n")
     else:
         print("Msg: {}".format(status))
-        broadcast_message(status)
+        broadcast_message(status + "\n")
     return False
 
 def handleClientInfo(client : socket, addr : int):
