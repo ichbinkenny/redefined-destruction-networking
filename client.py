@@ -17,6 +17,8 @@ READY = 1
 BUSY = 2
 DEV_ADDED = 3
 DEV_REMOVED = 4
+ENTER_COMBAT = 5
+EXIT_COMBAT = 6
 
 
 def setupClient():
@@ -46,6 +48,10 @@ def readDevUpdates():
         if status == DEV_ADDED:
             client_socket.sendall(bytes(info, 'utf-8'))
         elif status == DEV_REMOVED:
+            client_socket.sendall(bytes(info, 'utf-8'))
+        elif status == ENTER_COMBAT:
+            client_socket.sendall(bytes(info, 'utf-8'))
+        elif status == EXIT_COMBAT:
             client_socket.sendall(bytes(info, 'utf-8'))
         else:
             client_socket.sendall(bytes(info, 'utf-8'))
