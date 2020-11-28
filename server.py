@@ -100,7 +100,8 @@ def checkClientReadyState(client, addr):
     elif code == EXIT_COMBAT:
         current_combatants.remove(client)
         if multiple_combatants and len(current_combatants) == 1:
-            broadcast_message("WINNER: %s" % clientID)
+            winnerID = clients[addr[0]]
+            broadcast_message("WINNER: %s" % str(clientID))
             multiple_combatants = False
             current_combatants.clear()
         print("%d is exiting combat!!" % clientID)
