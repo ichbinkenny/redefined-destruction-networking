@@ -16,8 +16,10 @@ EXIT_COMBAT = 6
 clients = dict() # format for client is addr, id
 client_sockets = dict() #addr, client
 client_threads = []
+current_combatants = []
 message_size = 256
 client_lock = threading.Lock()
+multiple_combatants = False
 
 next_id = 1
 
@@ -77,6 +79,8 @@ def broadcast_message(msg):
     client_lock.release()
 
 def checkClientReadyState(client, addr):
+    global current_combatants
+    global multiple_combatants
     clientID = clients[addr[0]]
     status = client.recv(message_size).decode('utf-8')
     code = -1
@@ -90,7 +94,15 @@ def checkClientReadyState(client, addr):
         broadcast_message(status + " " + str(clientID) + "\n")
     elif code == ENTER_COMBAT:
         print("%d is entering combat!!" % clientID)
+        current_combatants.append(client)
+        if not multiple_combatants:
+            multiple_combatants = len(current_combatants) > 1
     elif code == EXIT_COMBAT:
+        current_combatants.remove(client)
+        if multiple_combatants and len(current_combatants) == 1:
+            broadcast_message("WINNER: %s" % clientID)
+            multiple_combatants = False
+            current_combatants.clear()
         print("%d is exiting combat!!" % clientID)
     else:
         print("Msg: {}".format(status))
