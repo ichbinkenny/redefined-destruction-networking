@@ -9,6 +9,9 @@ close_message = "PLZCLOSENOW"
 
 DEV_ADDED = 3
 DEV_REMOVED = 4
+ENTER_COMBAT = 5
+EXIT_COMBAT = 6
+
 
 clients = dict() # format for client is addr, id
 client_sockets = dict() #addr, client
@@ -76,9 +79,7 @@ def broadcast_message(msg):
 def checkClientReadyState(client, addr):
     clientID = clients[addr[0]]
     status = client.recv(message_size).decode('utf-8')
-    if status.lower() == "ready":
-        return True
-    code = "-1"
+    code = -1
     if ':' in status:
         code = int(status[:status.index(':')])
     if code == DEV_ADDED:
@@ -87,6 +88,10 @@ def checkClientReadyState(client, addr):
     elif code == DEV_REMOVED:
         print("Device removed from client with ID: %d" % clientID)
         broadcast_message(status + " " + str(clientID) + "\n")
+    elif code == ENTER_COMBAT:
+        print("%d is entering combat!!" % clientID)
+    elif code == EXIT_COMBAT:
+        print("%d is exiting combat!!" % clientID)
     else:
         print("Msg: {}".format(status))
         broadcast_message(status + "\n")
