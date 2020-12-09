@@ -28,6 +28,10 @@ NACK = 'f'
 
 game_in_progress = False
 
+### Server setup notes
+# server is visible and can be connected to through any socket implementation, not just battle bots!
+# This allows for future devices to be introduced without convoluded protocols.
+# If the socket is already being used, this function will still work 100%
 def setupServer():
     global server_socket
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -35,6 +39,9 @@ def setupServer():
     server_socket.bind((address, port))
     server_socket.listen(1)
 
+### Test notes
+# all CONNECTED clients are receiving the disconnect request!
+# a disconnected client will not delay the close request and is simply discarded.
 def teardownServer():
     global client_sockets
     for addr, client in client_sockets.items():
@@ -44,6 +51,9 @@ def teardownServer():
     global server_socket
     server_socket.close()
 
+### Test notes
+# If client was connected before, the previous ID is sent to the device. This is correct.
+# If a new client is connected, a new id is assigned and the global id counter is incremented.
 def sendIDToClient(client : socket, addr):
     idLock.acquire()
     global clients
@@ -60,6 +70,9 @@ def sendIDToClient(client : socket, addr):
     client.sendall(bytes(ACK, 'utf-8'))
     idLock.release()
 
+### Test notes
+# The expected client response of 0:0:0:Sword is received here!
+# incorrect messages are ignored and a NACK is sent to the bot.
 def getClientComponents(client, addr):
     message = client.recv(message_size)
     print("Client components %s" % str(message))
@@ -67,6 +80,11 @@ def getClientComponents(client, addr):
         client.sendall(bytes(NACK, 'utf-8'))
     return message
 
+### Test notes
+# All clients are receiving updates for devices added and removed from
+# a particular client. This allows for future game modes and decisions
+# on the bot end!
+# Disconnected clients are ignored and will be removed on server teardown.
 def broadcast_message(msg):
     client_lock.acquire()
     for k, cli in client_sockets.items():
@@ -78,6 +96,9 @@ def broadcast_message(msg):
             pass
     client_lock.release()
 
+### Test notes
+# Client status is properly parsed for all options, and 
+# all clients are being notified properly!
 def checkClientReadyState(client, addr):
     global current_combatants
     global multiple_combatants
@@ -110,6 +131,8 @@ def checkClientReadyState(client, addr):
         broadcast_message(status + "\n")
     return False
 
+### Client threads generated correctly and allowing
+# for reassignment of previous IDs for client reconnection!
 def handleClientInfo(client : socket, addr : int):
     print("I am a thread handling client with address %s" % str(addr))
     # We need to let the client know we established a connection.
@@ -125,7 +148,12 @@ def handleClientInfo(client : socket, addr : int):
         checkClientReadyState(client, addr)
 
 
-
+### Test notes
+# Server is setup appropriately without worry of previous
+# server runs still being active due to the teardown method call!
+# If a previous server is running, the new file will simply use the
+# socket that was setup!
+# Daemon threads are properly killed on server exit!
 if __name__ == "__main__":
     try: # setup socket needed
         print("Battle Bots server started!")
